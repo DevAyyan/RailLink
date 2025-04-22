@@ -28,21 +28,21 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { id, name, city } = body;
+    const { station1Id, station2Id, distance } = body;
 
-    if (!id || !name || !city) {
+    if (!station1Id || !station2Id || !distance) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const insertQuery = 'INSERT INTO railways (id, name, city) VALUES (?, ?, ?)';
+    const insertQuery = 'INSERT INTO railways (station_1_id, station_2_id, distance_km) VALUES (?, ?, ?)';
 
-    const [result] = await connection.execute(insertQuery, [id, name, city]);
+    const [result] = await connection.execute(insertQuery, [station1Id, station2Id, distance]);
 
     connection.end();
 
@@ -51,7 +51,7 @@ export async function PUT(request: Request) {
       result,
     });
   } catch (err) {
-    console.log('ERROR: PUT API - ', (err as Error).message);
+    console.log('ERROR: POST API - ', (err as Error).message);
 
     return NextResponse.json(
       { error: (err as Error).message },

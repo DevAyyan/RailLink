@@ -20,23 +20,23 @@ interface Railway {
   distance_km: number;
 }
 
-const sampleStations = [
-  { id: "s1", name: "Central Station", city: "Karachi", longitude: 100, latitude: 100 },
-  { id: "s2", name: "North Terminal", city: "Karachi", longitude: 200, latitude: 50 },
-  { id: "s3", name: "East Junction", city: "Karachi", longitude: 250, latitude: 150 },
-  { id: "s4", name: "South Station", city: "Karachi", longitude: 150, latitude: 200 },
-  { id: "s5", name: "Main Station", city: "Lahore", longitude: 400, latitude: 100 },
-  { id: "s6", name: "West Terminal", city: "Lahore", longitude: 500, latitude: 150 },
-]
+// const sampleStations = [
+//   { id: "1", name: "Central Station", city: "Karachi", longitude: 100, latitude: 100 },
+//   { id: "2", name: "North Terminal", city: "Karachi", longitude: 200, latitude: 50 },
+//   { id: "3", name: "East Junction", city: "Karachi", longitude: 250, latitude: 150 },
+//   { id: "4", name: "South Station", city: "Karachi", longitude: 150, latitude: 200 },
+//   { id: "5", name: "Main Station", city: "Lahore", longitude: 400, latitude: 100 },
+//   { id: "6", name: "West Terminal", city: "Lahore", longitude: 500, latitude: 150 },
+// ]
 
-const sampleRailways = [
-  { station_1_id: "s1", station_2_id: "s2", distance_km: 15 },
-  { station_1_id: "s2", station_2_id: "s3", distance_km: 12 },
-  { station_1_id: "s3", station_2_id: "s4", distance_km: 18 },
-  { station_1_id: "s4", station_2_id: "s1", distance_km: 20 },
-  { station_1_id: "s1", station_2_id: "s5", distance_km: 300 },
-  { station_1_id: "s5", station_2_id: "s6", distance_km: 10 },
-]
+// const sampleRailways = [
+//   { station_1_id: "1", station_2_id: "2", distance_km: 15 },
+//   { station_1_id: "2", station_2_id: "3", distance_km: 12 },
+//   { station_1_id: "3", station_2_id: "4", distance_km: 18 },
+//   { station_1_id: "4", station_2_id: "1", distance_km: 20 },
+//   { station_1_id: "1", station_2_id: "5", distance_km: 300 },
+//   { station_1_id: "5", station_2_id: "6", distance_km: 10 },
+// ]
 
 export function NetworkGraph() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ export function NetworkGraph() {
 
   const resetView = () => {
     if (cyRef.current) {
-      cyRef.current.fit(cyRef.current.nodes(), 50); // Use nodes to fit
+      cyRef.current.fit(cyRef.current.nodes(), 100); // Use nodes to fit
       cyRef.current.zoom(1.0);
     }
   };
@@ -57,8 +57,8 @@ export function NetworkGraph() {
     const fetchData = async () => {
       try {
         const [stationsRes, railwaysRes] = await Promise.all([
-          fetch("/api/stationsget"),
-          fetch("/api/railwaysget"),
+          fetch("/api/stations"),
+          fetch("/api/railways"),
         ]);
 
         const stationsData = await stationsRes.json();
@@ -69,8 +69,8 @@ export function NetworkGraph() {
             id: String(station.id),
             name: station.name,
             city: station.city,
-            latitude: Number(station.latitude),
-            longitude: Number(station.longitude),
+            latitude: Number(station.latitude*10),
+            longitude: Number(station.longitude*10),
           }))
         );
 
@@ -92,10 +92,6 @@ export function NetworkGraph() {
   }, []);
 
   useEffect(() => {
-    console.log(stations)
-    console.log(sampleStations)
-    console.log(railways)
-    console.log(sampleRailways)
 
     if (!containerRef.current || stations.length === 0 || railways.length === 0)
       return;
@@ -117,7 +113,6 @@ export function NetworkGraph() {
         // Edges (railways)
         ...railways.map((railway) => ({
           data: {
-            id: String(railway.id),
             source: String(railway.station_1_id),
             target: String(railway.station_2_id),
             distance: railway.distance_km,

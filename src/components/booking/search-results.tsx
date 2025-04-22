@@ -17,13 +17,32 @@ import {
 import { useToast } from "@/hooks/use-toast"
 
 interface SearchResultsProps {
-  results: any[]
-  selectedClass: string
-  date: Date
-  fromCity: string
-  toCity: string
-  fromStation: string
-  toStation: string
+  results: {
+    id: number;
+    train_id: number;
+    train_name: string;
+    departure_time: string;
+    arrival_time: string;
+    duration: string;
+    status: 'On Time' | 'Delayed' | 'Cancelled';
+    price: {
+      economy: number;
+      business: number;
+      vip: number;
+    };
+    available_seats: {
+      economy: number;
+      business: number;
+      vip: number;
+    };
+  }[];
+  selectedClass: string;
+  date: Date;
+  fromCity: string;
+  toCity: string;
+  fromStation: string;
+  toStation: string;
+  onBookTicket: (trainId: number, ticketClass: 'economy' | 'business' | 'vip', price: number) => Promise<void>;
 }
 
 export function SearchResults({
@@ -34,32 +53,34 @@ export function SearchResults({
   toCity,
   fromStation,
   toStation,
+  onBookTicket,
 }: SearchResultsProps) {
-  const [selectedTrain, setSelectedTrain] = useState<any | null>(null)
+  const [selectedSchedule, setSelectedSchedule] = useState<any | null>(null)
   const [isBooking, setIsBooking] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const { toast } = useToast()
 
-  const handleBook = (train: any) => {
-    setSelectedTrain(train)
+  const handleBook = (schedule: any) => {
+    setSelectedSchedule(schedule)
     setShowConfirmation(true)
   }
 
   const confirmBooking = async () => {
-    if (!selectedTrain) return
+    if (!selectedSchedule) return
 
     setIsBooking(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    setIsBooking(false)
-    setShowConfirmation(false)
-
-    toast({
-      title: "Ticket Booked Successfully!",
-      description: `Your ticket for ${selectedTrain.trainName} (${selectedTrain.trainNumber}) has been booked.`,
-    })
+    try {
+      await onBookTicket(
+        selectedSchedule.id,
+        selectedClass as 'economy' | 'business' | 'vip',
+        selectedSchedule.price[selectedClass as 'economy' | 'business' | 'vip']
+      )
+      setShowConfirmation(false)
+    } catch (error) {
+      console.error('Booking failed:', error)
+    } finally {
+      setIsBooking(false)
+    }
   }
 
   return (
@@ -89,8 +110,7 @@ export function SearchResults({
                     <div className="flex items-center">
                       <Train className="h-5 w-5 mr-2 text-primary" />
                       <div>
-                        <span className="font-semibold">{train.trainName}</span>
-                        <span className="text-sm text-muted-foreground ml-2">({train.trainNumber})</span>
+                        <span className="font-semibold">{train.train_name}</span>
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -103,7 +123,7 @@ export function SearchResults({
                 <div className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="space-y-1">
-                      <div className="text-2xl font-bold">{train.departureTime}</div>
+                      <div className="text-2xl font-bold">{format(new Date(train.departure_time), "HH:mm")}</div>
                       <div className="text-sm text-muted-foreground">{fromStation}</div>
                     </div>
 
@@ -115,7 +135,7 @@ export function SearchResults({
                     </div>
 
                     <div className="space-y-1 text-right">
-                      <div className="text-2xl font-bold">{train.arrivalTime}</div>
+                      <div className="text-2xl font-bold">{format(new Date(train.arrival_time), "HH:mm")}</div>
                       <div className="text-sm text-muted-foreground">{toStation}</div>
                     </div>
                   </div>
@@ -124,14 +144,19 @@ export function SearchResults({
                     <div>
                       <div className="flex items-center">
                         <CreditCard className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span className="font-medium">Rs. {train.price[selectedClass]}</span>
+                        <span className="font-medium">Rs. {train.price[selectedClass as 'economy' | 'business' | 'vip']}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {train.availableSeats[selectedClass]} seats available
+                        {train.available_seats[selectedClass as 'economy' | 'business' | 'vip']} seats available
                       </div>
                     </div>
 
-                    <Button onClick={() => handleBook(train)}>Book Now</Button>
+                    <Button 
+                      onClick={() => handleBook(train)}
+                      disabled={train.available_seats[selectedClass as 'economy' | 'business' | 'vip'] <= 0}
+                    >
+                      {train.available_seats[selectedClass as 'economy' | 'business' | 'vip'] <= 0 ? "No Seats Available" : "Book Now"}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -147,14 +172,12 @@ export function SearchResults({
             <DialogDescription>Please review your booking details before confirming.</DialogDescription>
           </DialogHeader>
 
-          {selectedTrain && (
+          {selectedSchedule && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Train</p>
-                  <p className="font-medium">
-                    {selectedTrain.trainName} ({selectedTrain.trainNumber})
-                  </p>
+                  <p className="font-medium">{selectedSchedule.train_name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Date</p>
@@ -174,11 +197,11 @@ export function SearchResults({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Departure</p>
-                  <p className="font-medium">{selectedTrain.departureTime}</p>
+                  <p className="font-medium">{format(new Date(selectedSchedule.departure_time), "HH:mm")}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Arrival</p>
-                  <p className="font-medium">{selectedTrain.arrivalTime}</p>
+                  <p className="font-medium">{format(new Date(selectedSchedule.arrival_time), "HH:mm")}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Class</p>
@@ -186,7 +209,7 @@ export function SearchResults({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="font-medium">Rs. {selectedTrain.price[selectedClass]}</p>
+                  <p className="font-medium">Rs. {selectedSchedule.price[selectedClass as 'economy' | 'business' | 'vip']}</p>
                 </div>
               </div>
             </div>

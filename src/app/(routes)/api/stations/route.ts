@@ -6,13 +6,13 @@ let connectionParams: IDBSettings = GetDBSettings();
 
 export async function GET(request: Request) {
   try {
-    console.log("Fetching tickets data...");
+    console.log("Fetching stations data...");
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const getTicketsQuery = 'SELECT * FROM tickets';
+    const getStationsQuery = 'SELECT * FROM stations';
 
-    const [results, fields] = await connection.execute(getTicketsQuery);
+    const [results, fields] = await connection.execute(getStationsQuery);
 
     connection.end();
 
@@ -32,22 +32,22 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { user_id, schedule_id, class: ticketClass, status } = body;
+    const { name, city, latitude, longitude } = body;
 
-    if (!user_id || !schedule_id || !ticketClass || !status) {  
+    if (!name || !city || !latitude || !longitude) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const insertQuery = 'INSERT INTO tickets (user_id, schedule_id, class, status, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)';
+    const insertQuery = 'INSERT INTO stations (name, city, latitude, longitude) VALUES (?, ?, ?, ?)';
 
-    const [result] = await connection.execute(insertQuery, [user_id, schedule_id, ticketClass, status]);
+    const [result] = await connection.execute(insertQuery, [name, city, latitude, longitude]);
 
     connection.end();
 
     return NextResponse.json({
-      message: 'Ticket inserted successfully',
+      message: 'Station inserted successfully',
       result,
     });
   } catch (err) {

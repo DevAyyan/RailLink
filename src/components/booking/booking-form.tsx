@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -14,27 +14,40 @@ import { format } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SearchResults } from "@/components/booking/search-results"
+import { useToast } from "@/hooks/use-toast"
 
-// Sample data - in a real app, this would come from your API
-const cities = [
-  { id: 1, name: "Karachi" },
-  { id: 2, name: "Lahore" },
-  { id: 3, name: "Islamabad" },
-  { id: 4, name: "Peshawar" },
-  { id: 5, name: "Quetta" },
-  { id: 6, name: "Faisalabad" },
-]
+interface Station {
+  id: number;
+  name: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+}
 
-const stations = [
-  { id: 1, name: "Central Station", cityId: 1 },
-  { id: 2, name: "North Terminal", cityId: 1 },
-  { id: 3, name: "East Junction", cityId: 1 },
-  { id: 4, name: "South Station", cityId: 1 },
-  { id: 5, name: "Main Station", cityId: 2 },
-  { id: 6, name: "West Terminal", cityId: 2 },
-  { id: 7, name: "University Station", cityId: 3 },
-  { id: 8, name: "City Center", cityId: 3 },
-]
+interface City {
+  id: string;
+  name: string;
+}
+
+interface SearchResult {
+  id: number;
+  train_id: number;
+  train_name: string;
+  departure_time: string;
+  arrival_time: string;
+  duration: string;
+  status: 'On Time' | 'Delayed' | 'Cancelled';
+  price: {
+    economy: number;
+    business: number;
+    vip: number;
+  };
+  available_seats: {
+    economy: number;
+    business: number;
+    vip: number;
+  };
+}
 
 const formSchema = z.object({
   fromCity: z.string().min(1, "Please select a departure city"),
@@ -50,8 +63,61 @@ const formSchema = z.object({
 })
 
 export function BookingForm() {
+  const { toast } = useToast();
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null)
+  const [dataFetched, setDataFetched] = useState(false);
+  const [stations, setStations] = useState<Station[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [trains, setTrains] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch stations
+        const stationsRes = await fetch("/api/stations");
+        if (!stationsRes.ok) {
+          throw new Error("Failed to fetch stations data");
+        }
+        const stationsData = await stationsRes.json();
+        setStations(stationsData.results);
+
+        // Extract unique cities from stations
+        const uniqueCities = Array.from(
+          new Set<string>(stationsData.results.map((station: Station) => station.city))
+        ).map((city, index) => ({
+          id: String(index + 1),
+          name: city
+        }));
+        setCities(uniqueCities);
+
+        // Fetch all schedules
+        const schedulesRes = await fetch("/api/schedules");
+        if (!schedulesRes.ok) {
+          throw new Error("Failed to fetch schedules data");
+        }
+        const schedulesData = await schedulesRes.json();
+        setSchedules(schedulesData.results);
+
+        // Fetch all trains
+        const trainsRes = await fetch("/api/trains");
+        if (!trainsRes.ok) {
+          throw new Error("Failed to fetch trains data");
+        }
+        const trainsData = await trainsRes.json();
+        setTrains(trainsData.results);
+
+        setDataFetched(true);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        setError("Failed to load necessary data. Please try again later.");
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,75 +129,142 @@ export function BookingForm() {
   const fromCity = form.watch("fromCity")
   const toCity = form.watch("toCity")
 
-  const fromStations = stations.filter((station) => station.cityId === Number.parseInt(fromCity || "0"))
-
-  const toStations = stations.filter((station) => station.cityId === Number.parseInt(toCity || "0"))
+  const fromStations = stations.filter((station) => station.city === cities.find(c => c.id === fromCity)?.name)
+  const toStations = stations.filter((station) => station.city === cities.find(c => c.id === toCity)?.name)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSearching(true)
+    setError(null)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Filter schedules based on user selection
+      const filteredSchedules = schedules.filter(schedule => {
+        const matchesFromStation = schedule.dep_station_id.toString() === values.fromStation;
+        const matchesToStation = schedule.arrival_station_id.toString() === values.toStation;
+        const matchesDate = format(new Date(schedule.departure_time), "yyyy-MM-dd") === format(values.date, "yyyy-MM-dd");
+        
+        return matchesFromStation && matchesToStation && matchesDate;
+      });
+      
+      // Transform the filtered schedules
+      const transformedResults: SearchResult[] = filteredSchedules.map((schedule: any) => {
+        const train = trains.find(t => t.id === schedule.train_id);
+        return {
+          id: schedule.id,
+          train_id: schedule.train_id,
+          train_name: train?.name || 'Unknown Train',
+          departure_time: schedule.departure_time,
+          arrival_time: schedule.arrival_time,
+          duration: calculateDuration(schedule.departure_time, schedule.arrival_time),
+          status: schedule.status,
+          price: {
+            economy: schedule.eco_price,
+            business: schedule.bus_price,
+            vip: schedule.vip_price
+          },
+          available_seats: {
+            economy: schedule.eco_left,
+            business: schedule.bus_left,
+            vip: schedule.vip_left
+          }
+        };
+      });
 
-    // Sample search results
-    setSearchResults([
-      {
-        id: 1,
-        trainNumber: "IC-101",
-        trainName: "Express Line",
-        departureTime: "08:30",
-        arrivalTime: "12:45",
-        duration: "4h 15m",
-        price: {
-          economy: 1200,
-          business: 2500,
-          vip: 4000,
-        },
-        availableSeats: {
-          economy: 42,
-          business: 18,
-          vip: 6,
-        },
-      },
-      {
-        id: 2,
-        trainNumber: "IC-205",
-        trainName: "Rapid Connect",
-        departureTime: "10:15",
-        arrivalTime: "14:30",
-        duration: "4h 15m",
-        price: {
-          economy: 1300,
-          business: 2700,
-          vip: 4200,
-        },
-        availableSeats: {
-          economy: 28,
-          business: 12,
-          vip: 4,
-        },
-      },
-      {
-        id: 3,
-        trainNumber: "IC-310",
-        trainName: "City Liner",
-        departureTime: "14:00",
-        arrivalTime: "18:20",
-        duration: "4h 20m",
-        price: {
-          economy: 1250,
-          business: 2600,
-          vip: 4100,
-        },
-        availableSeats: {
-          economy: 56,
-          business: 22,
-          vip: 8,
-        },
-      },
-    ])
+      setSearchResults(transformedResults);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setError("Failed to search schedules. Please try again later.");
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
-    setIsSearching(false)
+  async function handleBookTicket(scheduleId: number, ticketClass: 'economy' | 'business' | 'vip', price: number) {
+    try {
+      // Get user ID
+      const userId = prompt("Please enter your user ID:");
+      if (!userId) {
+        toast({
+          title: "Error",
+          description: "User ID is required to book a ticket.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate user ID is a number
+      if (isNaN(Number(userId))) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid user ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: Number(userId),
+          schedule_id: scheduleId,
+          class: ticketClass,
+          status: 'booked'
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to book ticket');
+      }
+
+      toast({
+        title: "Success",
+        description: "Ticket booked successfully!",
+      });
+
+      // Refresh the search results to update available seats
+      const currentValues = form.getValues();
+      await onSubmit(currentValues);
+    } catch (error) {
+      console.error('Failed to book ticket:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to book ticket. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  function calculateDuration(departureTime: string, arrivalTime: string): string {
+    // Parse the datetime strings
+    const dep = new Date(departureTime);
+    const arr = new Date(arrivalTime);
+    
+    // Calculate the difference in milliseconds
+    const diff = arr.getTime() - dep.getTime();
+    
+    // Convert to hours and minutes
+    const totalMinutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center p-4">{error}</div>;
+  }
+
+  if (!dataFetched) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
   }
 
   return (
@@ -160,7 +293,7 @@ export function BookingForm() {
                       </FormControl>
                       <SelectContent>
                         {cities.map((city) => (
-                          <SelectItem key={city.id} value={city.id.toString()}>
+                          <SelectItem key={city.id} value={city.id}>
                             {city.name}
                           </SelectItem>
                         ))}
@@ -218,7 +351,7 @@ export function BookingForm() {
                       </FormControl>
                       <SelectContent>
                         {cities.map((city) => (
-                          <SelectItem key={city.id} value={city.id.toString()}>
+                          <SelectItem key={city.id} value={city.id}>
                             {city.name}
                           </SelectItem>
                         ))}
@@ -346,10 +479,11 @@ export function BookingForm() {
           results={searchResults}
           selectedClass={form.getValues("ticketClass")}
           date={form.getValues("date")}
-          fromCity={cities.find((c) => c.id.toString() === form.getValues("fromCity"))?.name || ""}
-          toCity={cities.find((c) => c.id.toString() === form.getValues("toCity"))?.name || ""}
+          fromCity={cities.find((c) => c.id === form.getValues("fromCity"))?.name || ""}
+          toCity={cities.find((c) => c.id === form.getValues("toCity"))?.name || ""}
           fromStation={stations.find((s) => s.id.toString() === form.getValues("fromStation"))?.name || ""}
           toStation={stations.find((s) => s.id.toString() === form.getValues("toStation"))?.name || ""}
+          onBookTicket={handleBookTicket}
         />
       )}
     </div>
