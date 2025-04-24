@@ -26,24 +26,51 @@ const navigationItems = [
 
 export default function RoutesLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [userName, setUserName] = useState("")
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024)
     }
 
+    const checkAuth = () => {
+      const userStr = sessionStorage.getItem("user")
+      const admin = sessionStorage.getItem("isAdmin")
+      setIsLoggedIn(!!userStr)
+      setIsAdmin(admin === "true")
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        setUserName(user.name)
+      }
+    }
+
     handleResize()
+    checkAuth()
 
     window.addEventListener("resize", handleResize)
+    window.addEventListener("storage", checkAuth)
 
-    return () => window.removeEventListener("resize", handleResize)
+    return () => {
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("storage", checkAuth)
+    }
   }, [])
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("user")
+    sessionStorage.removeItem("isAdmin")
+    setIsLoggedIn(false)
+    setIsAdmin(false)
+    setUserName("")
+    window.location.href = "/"
+  }
 
   return (
     <div className="min-h-screen">
       <nav className="bg-white shadow-lg p-4 fixed top-0 left-0 w-full z-50">
         <div className="container mx-auto flex justify-between items-center">
-
           <div className="text-xl font-bold">RailLink</div>
 
           {!isMobile && (
@@ -63,6 +90,31 @@ export default function RoutesLayout({ children }: { children: React.ReactNode }
               </NavigationMenu>
             </div>
           )}
+
+          <div className="flex items-center gap-4">
+            {isLoggedIn ? (
+              <>
+                <span className="text-sm text-gray-600">Logged in as {userName}</span>
+                {isAdmin && (
+                  <Link href="/admin">
+                    <Button variant="outline">Admin Panel</Button>
+                  </Link>
+                )}
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link href="/register">
+                  <Button>Register</Button>
+                </Link>
+              </>
+            )}
+          </div>
 
           {/* Mobile Navigation */}
           {isMobile && (
@@ -84,11 +136,46 @@ export default function RoutesLayout({ children }: { children: React.ReactNode }
                       {item.name}
                     </Link>
                   ))}
+                  {isLoggedIn ? (
+                    <>
+                      <div className="text-sm text-gray-600 px-4 py-2">
+                        Logged in as {userName}
+                      </div>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          className="text-gray-800 hover:text-blue-600 transition font-medium px-4 py-2 rounded-lg hover:bg-gray-100"
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="text-gray-800 hover:text-blue-600 transition font-medium px-4 py-2 rounded-lg hover:bg-gray-100 text-left"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="text-gray-800 hover:text-blue-600 transition font-medium px-4 py-2 rounded-lg hover:bg-gray-100"
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="text-gray-800 hover:text-blue-600 transition font-medium px-4 py-2 rounded-lg hover:bg-gray-100"
+                      >
+                        Register
+                      </Link>
+                    </>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
           )}
-
         </div>
       </nav>
 

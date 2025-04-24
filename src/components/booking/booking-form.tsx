@@ -181,26 +181,18 @@ export function BookingForm() {
 
   async function handleBookTicket(scheduleId: number, ticketClass: 'economy' | 'business' | 'vip', price: number) {
     try {
-      // Get user ID
-      const userId = prompt("Please enter your user ID:");
-      if (!userId) {
+      // Get user info from session storage
+      const userStr = sessionStorage.getItem("user")
+      if (!userStr) {
         toast({
           title: "Error",
-          description: "User ID is required to book a ticket.",
+          description: "Please login to book a ticket.",
           variant: "destructive",
-        });
-        return;
+        })
+        return
       }
 
-      // Validate user ID is a number
-      if (isNaN(Number(userId))) {
-        toast({
-          title: "Error",
-          description: "Please enter a valid user ID.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const user = JSON.parse(userStr)
 
       const response = await fetch('/api/tickets', {
         method: 'POST',
@@ -208,33 +200,46 @@ export function BookingForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: Number(userId),
+          user_id: user.id,
           schedule_id: scheduleId,
           class: ticketClass,
           status: 'booked'
         }),
-      });
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to book ticket');
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to book ticket')
       }
+
+      // Update the search results directly
+      setSearchResults(prevResults => {
+        if (!prevResults) return null
+        return prevResults.map(result => {
+          if (result.id === scheduleId) {
+            return {
+              ...result,
+              available_seats: {
+                ...result.available_seats,
+                [ticketClass]: result.available_seats[ticketClass] - 1
+              }
+            }
+          }
+          return result
+        })
+      })
 
       toast({
         title: "Success",
         description: "Ticket booked successfully!",
-      });
-
-      // Refresh the search results to update available seats
-      const currentValues = form.getValues();
-      await onSubmit(currentValues);
+      })
     } catch (error) {
-      console.error('Failed to book ticket:', error);
+      console.error('Failed to book ticket:', error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to book ticket. Please try again.",
         variant: "destructive",
-      });
+      })
     }
   }
 

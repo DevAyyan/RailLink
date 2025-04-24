@@ -32,17 +32,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { id, name, email, password, role } = body;
+    const { name, email, password, role } = body;
 
-    if (!id || !name || !email || !password || !role) {
+    if (!name || !email || !password || !role) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const insertQuery = 'INSERT INTO user (id, name, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, SYSDATE)';
+    const insertQuery = 'INSERT INTO user (name, email, password, role, created_at) VALUES (?, ?, ?, ?, SYSDATE)';
 
-    const [result] = await connection.execute(insertQuery, [id, name, email, password, role]);
+    const [result] = await connection.execute(insertQuery, [name, email, password, role]);
 
     connection.end();
 
