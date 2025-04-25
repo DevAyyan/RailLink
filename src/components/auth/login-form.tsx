@@ -22,7 +22,7 @@ export function LoginForm() {
 
     try {
       const response = await fetch("/api/auth/login", {
-        method: "GET",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
