@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react"
 import { DataTable } from "./data-table"
 import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
 
 interface Schedule {
   id: number
@@ -38,7 +49,7 @@ const columns = [
   { key: "vip_price", label: "VIP Price" },
   { key: "eco_left", label: "Economy Seats Left" },
   { key: "bus_left", label: "Business Seats Left" },
-  { key: "vip_left", label: "VIP Seats Left" }
+  { key: "vip_left", label: "VIP Seats Left" },
 ]
 
 const addFormFields = [
@@ -54,6 +65,12 @@ const addFormFields = [
 
 export function SchedulesAdmin() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    departure_time: '',
+    arrival_time: ''
+  })
   const { toast } = useToast()
 
   const fetchSchedules = async () => {
@@ -129,15 +146,121 @@ export function SchedulesAdmin() {
     }
   };
 
+  const handleEditClick = (schedule: Schedule) => {
+    setEditingSchedule(schedule)
+    setEditForm({
+      departure_time: schedule.departure_time.slice(0, 16), // Format for datetime-local input
+      arrival_time: schedule.arrival_time.slice(0, 16)
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingSchedule) return
+
+    try {
+      const response = await fetch("/api/schedules", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: editingSchedule.id,
+          departure_time: editForm.departure_time,
+          arrival_time: editForm.arrival_time
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update schedule times")
+      }
+
+      await fetchSchedules()
+      setIsEditDialogOpen(false)
+      setEditingSchedule(null)
+
+      toast({
+        title: "Success",
+        description: "Schedule times updated successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update schedule times",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const renderAction = (schedule: Schedule) => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => handleEditClick(schedule)}
+    >
+      Edit Times
+    </Button>
+  )
+
   return (
-    <DataTable
-      title="Schedules"
-      columns={columns}
-      data={schedules}
-      onDelete={handleDelete}
-      onAdd={handleAdd}
-      addFormFields={addFormFields}
-      onStatusChange={handleStatusChange}
-    />
+    <div>
+      <DataTable
+        title="Schedules"
+        columns={columns}
+        data={schedules}
+        onDelete={handleDelete}
+        onAdd={handleAdd}
+        addFormFields={addFormFields}
+        onStatusChange={handleStatusChange}
+        renderAction={renderAction}
+      />
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Schedule Times</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="departure_time">Departure Time</Label>
+                <Input
+                  id="departure_time"
+                  type="datetime-local"
+                  value={editForm.departure_time}
+                  onChange={(e) => setEditForm(prev => ({
+                    ...prev,
+                    departure_time: e.target.value
+                  }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="arrival_time">Arrival Time</Label>
+                <Input
+                  id="arrival_time"
+                  type="datetime-local"
+                  value={editForm.arrival_time}
+                  onChange={(e) => setEditForm(prev => ({
+                    ...prev,
+                    arrival_time: e.target.value
+                  }))}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

@@ -206,25 +206,36 @@ export function UserTickets() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {ticket.arrival_station_name}, {ticket.arrival_station_city}
+                        Departure: {format(new Date(ticket.departure_time), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        Time: {format(new Date(ticket.departure_time), "HH:mm")}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {ticket.arrival_station_name}, {ticket.arrival_station_city}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {format(new Date(ticket.departure_time), "MMM d, yyyy")}
+                        Arrival: {format(new Date(ticket.arrival_time), "MMM d, yyyy")}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
-                        {format(new Date(ticket.departure_time), "HH:mm")} -{" "}
-                        {format(new Date(ticket.arrival_time), "HH:mm")}
+                        Time: {format(new Date(ticket.arrival_time), "HH:mm")}
                       </span>
                     </div>
                   </div>

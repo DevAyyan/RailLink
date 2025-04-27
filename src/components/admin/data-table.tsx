@@ -37,6 +37,7 @@ interface DataTableProps {
   onAdd: (data: any) => Promise<void>
   addFormFields: Column[]
   onStatusChange?: (id: number, status: string) => Promise<void>
+  renderAction?: (item: any) => React.ReactNode
 }
 
 export function DataTable({
@@ -47,6 +48,7 @@ export function DataTable({
   onAdd,
   addFormFields,
   onStatusChange,
+  renderAction,
 }: DataTableProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [formData, setFormData] = useState<Record<string, string>>({})
@@ -218,14 +220,16 @@ export function DataTable({
                   </TableCell>
                 ))}
                 <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Deleting..." : "Delete"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {renderAction && renderAction(item)}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

@@ -112,35 +112,58 @@ export async function DELETE(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, status } = body;
+    const { id, status, departure_time, arrival_time } = body;
 
-    if (!id || !status) {
+    if (!id) {
       return NextResponse.json(
-        { error: "Schedule ID and status are required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate status
-    if (!['On Time', 'Delayed', 'Cancelled'].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status value" },
+        { error: "Schedule ID is required" },
         { status: 400 }
       );
     }
 
     const connection = await mysql.createConnection(connectionParams);
-    await connection.execute(
-      'UPDATE schedules SET status = ? WHERE id = ?',
-      [status, id]
-    );
-    connection.end();
 
-    return NextResponse.json({ message: "Schedule status updated successfully" });
+    // Build the update query based on what's being updated
+    let updateFields = [];
+    let updateValues = [];
+
+    if (status) {
+      if (!['On Time', 'Delayed', 'Cancelled'].includes(status)) {
+        return NextResponse.json(
+          { error: "Invalid status value" },
+          { status: 400 }
+        );
+      }
+      updateFields.push('status = ?');
+      updateValues.push(status);
+    }
+
+    if (departure_time) {
+      updateFields.push('departure_time = ?');
+      updateValues.push(departure_time);
+    }
+
+    if (arrival_time) {
+      updateFields.push('arrival_time = ?');
+      updateValues.push(arrival_time);
+    }
+
+    // Add the id for the WHERE clause
+    updateValues.push(id);
+
+    if (updateFields.length > 0) {
+      await connection.execute(
+        `UPDATE schedules SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues
+      );
+    }
+
+    connection.end();
+    return NextResponse.json({ message: "Schedule updated successfully" });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to update schedule status" },
+      { error: "Failed to update schedule" },
       { status: 500 }
     );
   }
