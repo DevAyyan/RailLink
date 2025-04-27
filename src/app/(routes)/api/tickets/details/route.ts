@@ -32,6 +32,9 @@ export async function GET(request: Request) {
     console.log('User found, fetching tickets...');
 
     const getTicketsQuery = `
+      SET SQL_SAFE_UPDATES = 0;
+      call UpdateTicketStatuses();
+      SET SQL_SAFE_UPDATES = 1;
       SELECT 
         t.id as ticket_id,
         t.class as ticket_class,

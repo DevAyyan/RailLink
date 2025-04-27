@@ -76,3 +76,23 @@ END;
 
 DELIMITER ;
 
+DELIMITER //
+
+CREATE PROCEDURE UpdateTicketStatuses()
+BEGIN
+    UPDATE tickets t
+    JOIN schedules s ON t.schedule_id = s.id
+    SET t.status = 'Completed'
+    WHERE s.arrival_time < NOW()
+      AND t.status = 'Booked';
+
+    UPDATE tickets t
+    JOIN schedules s ON t.schedule_id = s.id
+    SET t.status = 'Cancelled',
+        t.cancelled_at = NOW()
+    WHERE s.status = 'Cancelled'
+      AND t.status = 'Booked';
+END;
+//
+
+DELIMITER ;
