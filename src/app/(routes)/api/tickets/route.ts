@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const getTicketsQuery = 'SET SQL_SAFE_UPDATES = 0;call UpdateTicketStatuses();SET SQL_SAFE_UPDATES = 1;SELECT * FROM tickets';
+    const getTicketsQuery = 'SELECT * FROM tickets';
 
     const [results, fields] = await connection.execute(getTicketsQuery);
 
