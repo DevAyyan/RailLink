@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function Dashboard() {
   return (
     <ProtectedRoute>
-      <div className="container py-8">
+      <div className="min-h-[calc(100vh-4rem)] pt-8">
         <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
         <div className="grid gap-6">
           <Card>

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const insertQuery = 'INSERT INTO user (name, email, password, role, created_at) VALUES (?, ?, ?, ?, SYSDATE)';
+    const insertQuery = 'INSERT INTO users (name, email, password, role, created_at) VALUES (?, ?, ?, ?, SYSDATE())';
 
     const [result] = await connection.execute(insertQuery, [name, email, password, role]);
 
@@ -55,6 +55,32 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: (err as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const connection = await mysql.createConnection(connectionParams);
+    await connection.execute('DELETE FROM users WHERE id = ?', [id]);
+    connection.end();
+
+    return NextResponse.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete user" },
       { status: 500 }
     );
   }

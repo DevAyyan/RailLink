@@ -90,7 +90,7 @@ CREATE TABLE tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     schedule_id INT NOT NULL,
-    class ENUM('Economy', 'Business', 'VIP') NOT NULL,
+    class ENUM('economy', 'business', 'vip') NOT NULL,
     status ENUM('Booked', 'Cancelled', 'Completed') DEFAULT 'Booked',
     cancelled_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

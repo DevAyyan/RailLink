@@ -31,30 +31,38 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const { user_id, schedule_id, class: ticketClass } = body;
 
-    const { user_id, schedule_id, class: ticketClass, status } = body;
+    if (!user_id || !schedule_id || !ticketClass) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
 
-    if (!user_id || !schedule_id || !ticketClass || !status) {  
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    // Ensure lowercase for validation and storage
+    const lowerClass = ticketClass.toLowerCase();
+    
+    if (!['economy', 'business', 'vip'].includes(lowerClass)) {
+      return NextResponse.json(
+        { error: "Invalid ticket class" },
+        { status: 400 }
+      );
     }
 
     const connection = await mysql.createConnection(connectionParams);
-
-    const insertQuery = 'INSERT INTO tickets (user_id, schedule_id, class, status, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)';
-
-    const [result] = await connection.execute(insertQuery, [user_id, schedule_id, ticketClass, status]);
+    
+    const [result] = await connection.execute(
+      'INSERT INTO tickets (user_id, schedule_id, class, status, created_at) VALUES (?, ?, ?, ?, SYSDATE())',
+      [user_id, schedule_id, lowerClass, 'booked']
+    );
 
     connection.end();
-
-    return NextResponse.json({
-      message: 'Ticket inserted successfully',
-      result,
-    });
-  } catch (err) {
-    console.log('ERROR: POST API - ', (err as Error).message);
-
+    return NextResponse.json({ message: "Ticket added successfully", result });
+  } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Failed to add ticket" },
       { status: 500 }
     );
   }
@@ -122,6 +130,32 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(
       { error: (err as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Ticket ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const connection = await mysql.createConnection(connectionParams);
+    await connection.execute('DELETE FROM tickets WHERE id = ?', [id]);
+    connection.end();
+
+    return NextResponse.json({ message: "Ticket deleted successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete ticket" },
       { status: 500 }
     );
   }

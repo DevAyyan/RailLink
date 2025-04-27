@@ -135,6 +135,19 @@ export function UserTickets() {
     }
   }
 
+  const getScheduleStatusColor = (status: string) => {
+    switch (status) {
+      case 'On Time':
+        return 'bg-green-100 text-green-800'
+      case 'Delayed':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'Cancelled':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -178,6 +191,9 @@ export function UserTickets() {
                   </Badge>
                   <Badge variant="outline" className={getTicketClassColor(ticket.ticket_class)}>
                     {ticket.ticket_class}
+                  </Badge>
+                  <Badge variant="outline" className={getScheduleStatusColor(ticket.schedule_status)}>
+                    {ticket.schedule_status}
                   </Badge>
                 </div>
 

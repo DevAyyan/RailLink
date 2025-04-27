@@ -16,12 +16,9 @@ import { Shield } from "lucide-react"
 
 export default function AdminPage() {
   return (
-    <ProtectedRoute requireAdmin>
-      <div className="container py-8">
-        <div className="flex items-center gap-2 mb-6">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        </div>
+    <div className="min-h-[calc(100vh-4rem)] pt-8">
+      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="space-y-8">
         <p className="text-muted-foreground mb-8">
           Manage all aspects of the RailLink system according to the database schema.
         </p>
@@ -148,6 +145,6 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </ProtectedRoute>
+    </div>
   )
 }

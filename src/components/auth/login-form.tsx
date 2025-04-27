@@ -13,12 +13,17 @@ export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [emailError, setEmailError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    // Reset error states
+    setEmailError("")
+    setPasswordError("")
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -32,7 +37,15 @@ export function LoginForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed")
+        // Set specific error messages based on the response
+        if (data.type === "email") {
+          setEmailError(data.message || "Email not found")
+        } else if (data.type === "password") {
+          setPasswordError(data.message || "Incorrect password")
+        } else {
+          throw new Error(data.message || "Login failed")
+        }
+        return
       }
 
       // Store user info in session storage
@@ -40,6 +53,9 @@ export function LoginForm() {
       if (data.user.role === 'admin') {
         sessionStorage.setItem("isAdmin", "true")
       }
+
+      // Dispatch custom event for auth change
+      window.dispatchEvent(new Event("authChange"))
 
       toast({
         title: "Success",
@@ -75,9 +91,16 @@ export function LoginForm() {
                 type="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setEmailError("") // Clear error on change
+                }}
                 required
+                className={emailError ? "border-red-500" : ""}
               />
+              {emailError && (
+                <span className="text-sm text-red-500">{emailError}</span>
+              )}
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="password">Password</Label>
@@ -86,9 +109,16 @@ export function LoginForm() {
                 type="password"
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setPasswordError("") // Clear error on change
+                }}
                 required
+                className={passwordError ? "border-red-500" : ""}
               />
+              {passwordError && (
+                <span className="text-sm text-red-500">{passwordError}</span>
+              )}
             </div>
           </div>
         </CardContent>

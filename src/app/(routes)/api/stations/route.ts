@@ -59,3 +59,29 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Station ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const connection = await mysql.createConnection(connectionParams);
+    await connection.execute('DELETE FROM stations WHERE id = ?', [id]);
+    connection.end();
+
+    return NextResponse.json({ message: "Station deleted successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete station" },
+      { status: 500 }
+    );
+  }
+}

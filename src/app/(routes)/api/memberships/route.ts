@@ -4,29 +4,21 @@ import { GetDBSettings, IDBSettings } from '@/sharedCode/commons';
 
 let connectionParams: IDBSettings = GetDBSettings();
 
-export async function GET(request: Request) {
-  try {
-    const connection = await mysql.createConnection(connectionParams);
-    const [results] = await connection.execute('SELECT * FROM trains');
-    connection.end();
-    return NextResponse.json({ results });
-  } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch trains" },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, type, eco_max, bus_max, vip_max } = body;
+    const { user_id, tier, expiry_date } = body;
 
-    if (!name || !type || !eco_max || !bus_max || !vip_max) {
+    if (!user_id || !tier || !expiry_date) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    if (!['Economy', 'Business', 'VIP'].includes(tier)) {
+      return NextResponse.json(
+        { error: "Invalid membership tier" },
         { status: 400 }
       );
     }
@@ -34,17 +26,16 @@ export async function POST(request: Request) {
     const connection = await mysql.createConnection(connectionParams);
     
     const [result] = await connection.execute(
-      'INSERT INTO trains (name, type, eco_max, bus_max, vip_max) VALUES (?, ?, ?, ?, ?)',
-      [name, type, eco_max, bus_max, vip_max]
+      'INSERT INTO memberships (user_id, tier, expiry_date) VALUES (?, ?, ?)',
+      [user_id, tier, expiry_date]
     );
 
     connection.end();
-
-    return NextResponse.json({ message: "Train added successfully", result });
+    return NextResponse.json({ message: "Membership added successfully", result });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to add train" },
+      { error: "Failed to add membership" },
       { status: 500 }
     );
   }
@@ -57,21 +48,21 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { error: "Train ID is required" },
+        { error: "Membership ID is required" },
         { status: 400 }
       );
     }
 
     const connection = await mysql.createConnection(connectionParams);
-    await connection.execute('DELETE FROM trains WHERE id = ?', [id]);
+    await connection.execute('DELETE FROM memberships WHERE id = ?', [id]);
     connection.end();
 
-    return NextResponse.json({ message: "Train deleted successfully" });
+    return NextResponse.json({ message: "Membership deleted successfully" });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to delete train" },
+      { error: "Failed to delete membership" },
       { status: 500 }
     );
   }
-}
+} 

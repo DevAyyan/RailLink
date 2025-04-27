@@ -4,27 +4,12 @@ import { GetDBSettings, IDBSettings } from '@/sharedCode/commons';
 
 let connectionParams: IDBSettings = GetDBSettings();
 
-export async function GET(request: Request) {
-  try {
-    const connection = await mysql.createConnection(connectionParams);
-    const [results] = await connection.execute('SELECT * FROM trains');
-    connection.end();
-    return NextResponse.json({ results });
-  } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch trains" },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, type, eco_max, bus_max, vip_max } = body;
+    const { user_id, ticket_id, amount, transaction_id } = body;
 
-    if (!name || !type || !eco_max || !bus_max || !vip_max) {
+    if (!user_id || !ticket_id || !amount || !transaction_id) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -34,17 +19,16 @@ export async function POST(request: Request) {
     const connection = await mysql.createConnection(connectionParams);
     
     const [result] = await connection.execute(
-      'INSERT INTO trains (name, type, eco_max, bus_max, vip_max) VALUES (?, ?, ?, ?, ?)',
-      [name, type, eco_max, bus_max, vip_max]
+      'INSERT INTO payments (user_id, ticket_id, amount, transaction_id) VALUES (?, ?, ?, ?)',
+      [user_id, ticket_id, amount, transaction_id]
     );
 
     connection.end();
-
-    return NextResponse.json({ message: "Train added successfully", result });
+    return NextResponse.json({ message: "Payment added successfully", result });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to add train" },
+      { error: "Failed to add payment" },
       { status: 500 }
     );
   }
@@ -57,21 +41,21 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { error: "Train ID is required" },
+        { error: "Payment ID is required" },
         { status: 400 }
       );
     }
 
     const connection = await mysql.createConnection(connectionParams);
-    await connection.execute('DELETE FROM trains WHERE id = ?', [id]);
+    await connection.execute('DELETE FROM payments WHERE id = ?', [id]);
     connection.end();
 
-    return NextResponse.json({ message: "Train deleted successfully" });
+    return NextResponse.json({ message: "Payment deleted successfully" });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to delete train" },
+      { error: "Failed to delete payment" },
       { status: 500 }
     );
   }
-}
+} 

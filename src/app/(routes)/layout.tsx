@@ -30,20 +30,22 @@ export default function RoutesLayout({ children }: { children: React.ReactNode }
   const [isAdmin, setIsAdmin] = useState(false)
   const [userName, setUserName] = useState("")
 
+  const checkAuth = () => {
+    const userStr = sessionStorage.getItem("user")
+    const admin = sessionStorage.getItem("isAdmin")
+    setIsLoggedIn(!!userStr)
+    setIsAdmin(admin === "true")
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      setUserName(user.name)
+    } else {
+      setUserName("")
+    }
+  }
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024)
-    }
-
-    const checkAuth = () => {
-      const userStr = sessionStorage.getItem("user")
-      const admin = sessionStorage.getItem("isAdmin")
-      setIsLoggedIn(!!userStr)
-      setIsAdmin(admin === "true")
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        setUserName(user.name)
-      }
     }
 
     handleResize()
@@ -51,26 +53,27 @@ export default function RoutesLayout({ children }: { children: React.ReactNode }
 
     window.addEventListener("resize", handleResize)
     window.addEventListener("storage", checkAuth)
+    window.addEventListener("authChange", checkAuth)
 
     return () => {
       window.removeEventListener("resize", handleResize)
       window.removeEventListener("storage", checkAuth)
+      window.removeEventListener("authChange", checkAuth)
     }
   }, [])
 
   const handleLogout = () => {
     sessionStorage.removeItem("user")
     sessionStorage.removeItem("isAdmin")
-    setIsLoggedIn(false)
-    setIsAdmin(false)
-    setUserName("")
+    window.dispatchEvent(new Event("authChange"))
     window.location.href = "/"
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="bg-white shadow-lg p-4 fixed top-0 left-0 w-full z-50">
-        <div className="container mx-auto flex justify-between items-center">
+    <div className="min-h-screen flex flex-col">
+      {/* Fixed height navbar */}
+      <nav className="h-16 bg-white shadow-lg fixed top-0 left-0 w-full z-50">
+        <div className="container mx-auto h-full flex justify-between items-center px-4">
           <div className="text-xl font-bold">RailLink</div>
 
           {!isMobile && (
@@ -179,13 +182,18 @@ export default function RoutesLayout({ children }: { children: React.ReactNode }
         </div>
       </nav>
 
-      <div
-        className="relative h-screen flex items-center justify-center text-white bg-cover bg-center bg-black"
-        style={{ backgroundImage: "url('/images/trainImage1.jpg')" }}
-      >
-        <div className="absolute inset-0 bg-black opacity-50"></div>
-        <div className="relative z-10 w-full max-w-6xl px-4 pt-20">{children}</div>
-      </div>
+      {/* Main content area with proper padding for fixed navbar */}
+      <main className="flex-1 pt-16">
+        <div 
+          className="min-h-screen bg-cover bg-center bg-black relative"
+          style={{ backgroundImage: "url('/images/trainImage1.jpg')" }}
+        >
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="relative z-10 container mx-auto px-4 py-8 text-white">
+            {children}
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

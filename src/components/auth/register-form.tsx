@@ -36,12 +36,19 @@ export function RegisterForm() {
         throw new Error(data.message || "Registration failed")
       }
 
+      // Store user info in session storage
+      sessionStorage.setItem("user", JSON.stringify(data.user))
+      
+      // Dispatch custom event for auth change
+      window.dispatchEvent(new Event("authChange"))
+
       toast({
         title: "Success",
-        description: "Registered successfully! Please login.",
+        description: "Registration successful!",
       })
 
-      router.push("/login")
+      router.push("/dashboard")
+      router.refresh()
     } catch (error) {
       toast({
         title: "Error",

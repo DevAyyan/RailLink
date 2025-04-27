@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       LEFT JOIN trains tr ON s.train_id = tr.id
       LEFT JOIN stations ds ON s.dep_station_id = ds.id
       LEFT JOIN stations ss ON s.arrival_station_id = ss.id
-      WHERE t.user_id = 7
+      WHERE t.user_id = ?
       ORDER BY s.departure_time DESC
     `;
 

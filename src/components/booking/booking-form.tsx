@@ -203,7 +203,6 @@ export function BookingForm() {
           user_id: user.id,
           schedule_id: scheduleId,
           class: ticketClass,
-          status: 'booked'
         }),
       })
 

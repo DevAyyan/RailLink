@@ -28,85 +28,119 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
-
     const { 
       train_id, 
       dep_station_id, 
       departure_time, 
       arrival_station_id, 
-      arrival_time, 
-      status = 'On Time',
-      eco_price, 
-      bus_price, 
-      vip_price 
+      arrival_time,
+      status,
+      eco_price,
+      bus_price,
+      vip_price
     } = body;
 
-    // Validate required fields
-    if (!train_id || !dep_station_id || !departure_time || !arrival_station_id || !arrival_time) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!train_id || !dep_station_id || !departure_time || 
+        !arrival_station_id || !arrival_time) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const connection = await mysql.createConnection(connectionParams);
+    
+    const [result] = await connection.execute(
+      `INSERT INTO schedules (
+        train_id, dep_station_id, departure_time, 
+        arrival_station_id, arrival_time, status,
+        eco_price, bus_price, vip_price
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        train_id, 
+        dep_station_id, 
+        departure_time,
+        arrival_station_id, 
+        arrival_time, 
+        status || 'On Time',
+        eco_price || 0, 
+        bus_price || 0, 
+        vip_price || 0
+      ]
+    );
+
+    connection.end();
+    return NextResponse.json({ message: "Schedule added successfully", result });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Failed to add schedule" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Schedule ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const connection = await mysql.createConnection(connectionParams);
+    await connection.execute('DELETE FROM schedules WHERE id = ?', [id]);
+    connection.end();
+
+    return NextResponse.json({ message: "Schedule deleted successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete schedule" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json(
+        { error: "Schedule ID and status are required" },
+        { status: 400 }
+      );
     }
 
     // Validate status
     if (!['On Time', 'Delayed', 'Cancelled'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid status value" },
+        { status: 400 }
+      );
     }
 
     const connection = await mysql.createConnection(connectionParams);
-
-    // Check if train exists
-    const [trainCheck] = await connection.execute(
-      'SELECT id FROM trains WHERE id = ?',
-      [train_id]
-    ) as [any[], any];
-
-    if (!trainCheck || trainCheck.length === 0) {
-      connection.end();
-      return NextResponse.json({ error: 'Train not found' }, { status: 404 });
-    }
-
-    // Check if stations exist
-    const [stationsCheck] = await connection.execute(
-      'SELECT id FROM stations WHERE id IN (?, ?)',
-      [dep_station_id, arrival_station_id]
-    ) as [any[], any];
-
-    if (!stationsCheck || stationsCheck.length !== 2) {
-      connection.end();
-      return NextResponse.json({ error: 'One or both stations not found' }, { status: 404 });
-    }
-
-    // Insert schedule
-    const insertQuery = `
-      INSERT INTO schedules (train_id, dep_station_id, departure_time, arrival_station_id, arrival_time, status, eco_price, bus_price, vip_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-
-    `;
-
-    const [result] = await connection.execute(insertQuery, [
-      train_id, 
-      dep_station_id, 
-      departure_time, 
-      arrival_station_id, 
-      arrival_time, 
-      status, 
-      eco_price, 
-      bus_price, 
-      vip_price
-    ]);
-
+    await connection.execute(
+      'UPDATE schedules SET status = ? WHERE id = ?',
+      [status, id]
+    );
     connection.end();
 
-    return NextResponse.json({
-      message: 'Schedule created successfully',
-      result,
-    });
-  } catch (err) {
-    console.log('ERROR: PUT API - ', (err as Error).message);
-
+    return NextResponse.json({ message: "Schedule status updated successfully" });
+  } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Failed to update schedule status" },
       { status: 500 }
     );
   }
