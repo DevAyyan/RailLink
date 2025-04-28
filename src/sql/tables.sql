@@ -44,7 +44,7 @@ CREATE TABLE trains (
     eco_max INT NOT NULL,
     bus_max INT NOT NULL,
     vip_max INT NOT NULL,
-    speed DECIMAL(3, 2) NOT NULL,
+    speed DECIMAL(5, 2) NOT NULL,
     type ENUM('Metro', 'Intercity') NOT NULL
 );
 

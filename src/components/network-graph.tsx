@@ -69,8 +69,8 @@ export function NetworkGraph() {
             id: String(station.id),
             name: station.name,
             city: station.city,
-            latitude: Number(station.latitude*10),
-            longitude: Number(station.longitude*10),
+            latitude: Number(station.latitude*25),
+            longitude: Number(station.longitude*25),
           }))
         );
 
@@ -92,7 +92,6 @@ export function NetworkGraph() {
   }, []);
 
   useEffect(() => {
-
     if (!containerRef.current || stations.length === 0 || railways.length === 0)
       return;
 
@@ -129,9 +128,9 @@ export function NetworkGraph() {
             color: "#1a202c",
             "text-valign": "center",
             "text-halign": "center",
-            "font-size": "10px",
-            width: "15x",
-            height: "15px",
+            "font-size": "15px",
+            width: "20px",
+            height: "20px",
             "text-wrap": "wrap",
             "text-max-width": "40px",
           },
@@ -164,8 +163,29 @@ export function NetworkGraph() {
       autounselectify: true,
     });
 
+    // Add zoom event listener
+    cy.on('zoom', (evt) => {
+      const zoom = cy.zoom();
+      const baseFontSize = 15;
+      const minFontSize = 8;
+      const maxFontSize = 30;
+      
+      const fontSize = Math.min(Math.max(baseFontSize / zoom, minFontSize), maxFontSize);
+      
+      cy.style()
+        .selector('node')
+        .style({
+          'font-size': `${fontSize}px`
+        })
+        .selector('edge')
+        .style({
+          'font-size': `${fontSize * 0.6}px`
+        })
+        .update();
+    });
+
     cyRef.current = cy;
-    cy.fit(cy.nodes(), 50); 
+    cy.fit(cy.nodes(), 50);
     setIsInitialized(true);
 
     return () => {
