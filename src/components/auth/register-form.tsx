@@ -14,6 +14,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [generalError, setGeneralError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -33,7 +34,14 @@ export function RegisterForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed")
+        if (data.error === "Missing required fields") {
+          setGeneralError("Please fill in all required fields")
+        } else if (data.error === "User already exists") {
+          setGeneralError("An account with this email already exists")
+        } else {
+          setGeneralError(data.error || "Registration failed")
+        }
+        return
       }
 
       // Store user info in session storage
@@ -105,6 +113,9 @@ export function RegisterForm() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
+          {generalError && (
+            <div className="text-sm text-red-500 text-center">{generalError}</div>
+          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Registering..." : "Register"}
           </Button>

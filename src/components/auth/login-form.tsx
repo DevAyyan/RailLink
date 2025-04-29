@@ -15,6 +15,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [emailError, setEmailError] = useState("")
   const [passwordError, setPasswordError] = useState("")
+  const [generalError, setGeneralError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -34,19 +35,17 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        // Set specific error messages based on the response
-        if (data.type === "email") {
-          setEmailError(data.message || "Email not found")
-        } else if (data.type === "password") {
-          setPasswordError(data.message || "Incorrect password")
+        const data = await response.json()
+        if (response.status === 401) {
+          setGeneralError("Incorrect email or password")
         } else {
-          throw new Error(data.message || "Login failed")
+          setGeneralError(data.error || "Login failed")
         }
         return
       }
+
+      const data = await response.json()
 
       // Store user info in session storage
       sessionStorage.setItem("user", JSON.stringify(data.user))
@@ -54,7 +53,6 @@ export function LoginForm() {
         sessionStorage.setItem("isAdmin", "true")
       }
 
-      // Dispatch custom event for auth change
       window.dispatchEvent(new Event("authChange"))
 
       toast({
@@ -123,6 +121,9 @@ export function LoginForm() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
+          {generalError && (
+            <div className="text-sm text-red-500 text-center">{generalError}</div>
+          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Login"}
           </Button>
