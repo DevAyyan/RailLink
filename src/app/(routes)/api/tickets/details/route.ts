@@ -31,6 +31,19 @@ export async function GET(request: Request) {
 
     console.log('User found, fetching tickets...');
 
+    try {
+      // Update ticket statuses
+      console.log('Updating ticket statuses...');
+      await connection.execute('SET SQL_SAFE_UPDATES = 0');
+      await connection.execute('CALL UpdateTicketStatuses()');
+      await connection.execute('SET SQL_SAFE_UPDATES = 1');
+      console.log('Ticket statuses updated successfully');
+    } catch (updateError) {
+      console.error('Error updating ticket statuses:', updateError);
+      // Continue with fetching tickets even if status update fails
+    }
+
+    // Fetch tickets
     const getTicketsQuery = `
       SELECT 
         t.id as ticket_id,
@@ -41,7 +54,7 @@ export async function GET(request: Request) {
         s.id as schedule_id,
         s.departure_time,
         s.arrival_time,
-		s.status as schedule_status,
+        s.status as schedule_status,
         s.eco_price,
         s.bus_price,
         s.vip_price,
@@ -67,8 +80,13 @@ export async function GET(request: Request) {
     `;
 
     console.log('Executing query with userId:', userId);
-    const [results] = await connection.execute(getTicketsQuery, [userId]);
+    const [results] = await connection.execute(getTicketsQuery, [userId]) as [any[], any];
     console.log('Query executed successfully, results:', results);
+
+    if (!results || results.length === 0) {
+      console.log('No tickets found for user:', userId);
+      return NextResponse.json({ results: [] });
+    }
 
     return NextResponse.json({ results });
   } catch (err) {
@@ -78,8 +96,19 @@ export async function GET(request: Request) {
       stack: (err as Error).stack
     });
 
+    // Return a more specific error message
+    const errorMessage = (err as Error).message.includes('UpdateTicketStatuses')
+      ? 'Error updating ticket statuses'
+      : (err as Error).message.includes('schedules')
+      ? 'Error fetching schedule information'
+      : (err as Error).message.includes('trains')
+      ? 'Error fetching train information'
+      : (err as Error).message.includes('stations')
+      ? 'Error fetching station information'
+      : 'Failed to load tickets';
+
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: errorMessage },
       { status: 500 }
     );
   } finally {
