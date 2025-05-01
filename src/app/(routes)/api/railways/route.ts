@@ -7,7 +7,8 @@ let connectionParams: IDBSettings = GetDBSettings();
 export async function GET(request: Request) {
   try {
     const connection = await mysql.createConnection(connectionParams);
-    const [results] = await connection.execute('SELECT * FROM railways');
+    const [results] = await connection.execute(`
+      SELECT * FROM railways`);
     connection.end();
     return NextResponse.json({ results });
   } catch (error) {

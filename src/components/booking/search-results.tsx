@@ -102,7 +102,10 @@ export function SearchResults({
         </Card>
       ) : (
         <div className="space-y-4">
-          {results.map((train) => (
+          {results
+          .filter((train) => train.status !== 'Cancelled')
+          .map((train) => (
+
             <Card key={train.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="p-4 border-b bg-muted/30">

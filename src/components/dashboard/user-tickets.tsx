@@ -91,7 +91,6 @@ export function UserTickets() {
         throw new Error("Failed to cancel ticket")
       }
 
-      // Update the tickets list
       setTickets(prevTickets =>
         prevTickets.map(ticket =>
           ticket.ticket_id === ticketId
@@ -147,7 +146,6 @@ export function UserTickets() {
         throw new Error('Failed to process payment')
       }
 
-      // Refresh tickets to show updated payment status
       const ticketsResponse = await fetch(`/api/tickets/details?user_id=${user.id}`)
       if (!ticketsResponse.ok) {
         throw new Error('Failed to refresh tickets')
