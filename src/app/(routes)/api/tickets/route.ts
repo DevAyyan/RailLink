@@ -10,16 +10,23 @@ export async function GET(request: Request) {
 
     const connection = await mysql.createConnection(connectionParams);
 
-    const getTicketsQuery = `SET SQL_SAFE_UPDATES = 0;
-CALL UpdateTicketStatuses();
-SET SQL_SAFE_UPDATES = 1;
-SELECT * FROM tickets`;
+    try {
+      // Update ticket statuses
+      console.log('Updating ticket statuses...');
+      await connection.execute('SET SQL_SAFE_UPDATES = 0');
+      await connection.execute('CALL UpdateTicketStatuses()');
+      await connection.execute('SET SQL_SAFE_UPDATES = 1');
+      console.log('Ticket statuses updated successfully');
+    } catch (updateError) {
+      console.error('Error updating ticket statuses:', updateError);
+    }
 
-    const [results, fields] = await connection.execute(getTicketsQuery);
+    // Then, fetch the tickets
+    const [results] = await connection.execute('SELECT * FROM tickets');
 
     connection.end();
 
-    return NextResponse.json({ fields: fields.map((f) => f.name), results });
+    return NextResponse.json({ results });
   } catch (err) {
     console.log('ERROR: API - ', (err as Error).message);
 
@@ -56,7 +63,8 @@ export async function POST(request: Request) {
     const connection = await mysql.createConnection(connectionParams);
     
     const [result] = await connection.execute(
-      'INSERT INTO tickets (user_id, schedule_id, class, status, created_at) VALUES (?, ?, ?, ?, SYSDATE())',
+      `INSERT INTO tickets (user_id, schedule_id, class, status, created_at) VALUES (?, ?, ?, ?, SYSDATE())
+      `,
       [user_id, schedule_id, lowerClass, 'booked']
     );
 

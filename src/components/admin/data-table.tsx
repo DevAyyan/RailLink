@@ -191,25 +191,25 @@ export function DataTable({
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map((column) => (
-                <TableHead key={column.key}>{column.label}</TableHead>
+              {columns.map((column, index) => (
+                <TableHead key={`header-${column.key}-${index}`}>{column.label}</TableHead>
               ))}
-              <TableHead>Actions</TableHead>
+              <TableHead key="header-actions">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((item) => (
-              <TableRow key={item.id}>
-                {columns.map((column) => (
-                  <TableCell key={column.key}>
+              <TableRow key={`row-${item.id}`}>
+                {columns.map((column, index) => (
+                  <TableCell key={`cell-${item.id}-${column.key}-${index}`}>
                     {column.type === 'select' && column.key === 'status' && onStatusChange ? (
                       <select
                         value={item[column.key]}
                         onChange={(e) => onStatusChange(item.id, e.target.value)}
                         className="w-full p-2 border rounded-md"
                       >
-                        {column.options?.map((option) => (
-                          <option key={option} value={option}>
+                        {column.options?.map((option, optIndex) => (
+                          <option key={`option-${item.id}-${option}-${optIndex}`} value={option}>
                             {option}
                           </option>
                         ))}
@@ -219,7 +219,7 @@ export function DataTable({
                     )}
                   </TableCell>
                 ))}
-                <TableCell>
+                <TableCell key={`action-${item.id}`}>
                   <div className="flex items-center gap-2">
                     {renderAction && renderAction(item)}
                     <Button

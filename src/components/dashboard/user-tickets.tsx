@@ -34,6 +34,10 @@ interface Ticket {
   arrival_station_id: number
   arrival_station_name: string
   arrival_station_city: string
+  payment_id: number | null
+  payment_status: 'Pending' | 'Completed' | 'Failed' | null
+  payment_amount: number | null
+  paid_at: string | null
 }
 
 export function UserTickets() {
@@ -110,6 +114,61 @@ export function UserTickets() {
     }
   }
 
+  const handlePayment = async (ticket: Ticket) => {
+    try {
+      const userStr = sessionStorage.getItem("user")
+      if (!userStr) {
+        toast({
+          title: "Error",
+          description: "Please login to make a payment",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const user = JSON.parse(userStr)
+      const amount = ticket.ticket_class === 'Economy' ? ticket.eco_price :
+                    ticket.ticket_class === 'Business' ? ticket.bus_price :
+                    ticket.vip_price
+
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          ticket_id: ticket.ticket_id,
+          amount: amount
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to process payment')
+      }
+
+      // Refresh tickets to show updated payment status
+      const ticketsResponse = await fetch(`/api/tickets/details?user_id=${user.id}`)
+      if (!ticketsResponse.ok) {
+        throw new Error('Failed to refresh tickets')
+      }
+      const data = await ticketsResponse.json()
+      setTickets(data.results)
+
+      toast({
+        title: "Success",
+        description: "Payment processed successfully",
+      })
+    } catch (error) {
+      console.error('Payment error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Booked':
@@ -149,6 +208,19 @@ export function UserTickets() {
     }
   }
 
+  const getPaymentStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'Completed':
+        return 'bg-green-100 text-green-800'
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'Failed':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -174,9 +246,9 @@ export function UserTickets() {
 
   return (
     <div className="space-y-4">
-      {tickets.map((ticket) => (
+      {tickets.map((ticket, index) => (
         <Card
-          key={ticket.ticket_id}
+          key={`ticket-${ticket.ticket_id}-${index}`}
           className={`${
             ticket.ticket_status !== 'Booked' ? 'opacity-60' : ''
           } transition-opacity`}
@@ -196,6 +268,15 @@ export function UserTickets() {
                   <Badge variant="outline" className={getScheduleStatusColor(ticket.schedule_status)}>
                     {ticket.schedule_status}
                   </Badge>
+                  {ticket.payment_status && (
+                    <Badge variant="outline" className={getPaymentStatusColor(ticket.payment_status)}>
+                      Payment: {ticket.payment_status}
+                      {ticket.payment_amount && typeof ticket.payment_amount === 'number' && 
+                        ` ($${Number(ticket.payment_amount).toFixed(2)})`}
+                      {ticket.paid_at && ticket.payment_status === 'Completed' && 
+                        ` - Paid on ${format(new Date(ticket.paid_at), "MMM d, yyyy")}`}
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,13 +325,24 @@ export function UserTickets() {
               </div>
 
               {ticket.ticket_status === 'Booked' && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleCancelTicket(ticket.ticket_id)}
-                >
-                  Cancel Ticket
-                </Button>
+                <div className="flex gap-2">
+                  {!ticket.payment_status && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handlePayment(ticket)}
+                    >
+                      Pay Now
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleCancelTicket(ticket.ticket_id)}
+                  >
+                    Cancel Ticket
+                  </Button>
+                </div>
               )}
             </div>
           </CardContent>

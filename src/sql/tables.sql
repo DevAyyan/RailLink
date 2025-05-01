@@ -106,15 +106,11 @@ CREATE TABLE tickets (
 
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
     ticket_id INT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     payment_status ENUM('Pending', 'Completed', 'Failed') DEFAULT 'Pending',
-    transaction_id VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) 
-        ON DELETE CASCADE 
-        ON UPDATE CASCADE,
+    paid_at TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (ticket_id) REFERENCES tickets(id) 
         ON DELETE CASCADE 
         ON UPDATE CASCADE

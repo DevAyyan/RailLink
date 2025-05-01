@@ -40,7 +40,6 @@ export async function GET(request: Request) {
       console.log('Ticket statuses updated successfully');
     } catch (updateError) {
       console.error('Error updating ticket statuses:', updateError);
-      // Continue with fetching tickets even if status update fails
     }
 
     // Fetch tickets
@@ -69,12 +68,16 @@ export async function GET(request: Request) {
         ds.city as departure_station_city,
         ss.id as arrival_station_id,
         ss.name as arrival_station_name,
-        ss.city as arrival_station_city
+        ss.city as arrival_station_city,
+        p.id as payment_id,
+        p.payment_status,
+        p.amount as payment_amount
       FROM tickets t
       LEFT JOIN schedules s ON t.schedule_id = s.id
       LEFT JOIN trains tr ON s.train_id = tr.id
       LEFT JOIN stations ds ON s.dep_station_id = ds.id
       LEFT JOIN stations ss ON s.arrival_station_id = ss.id
+      LEFT JOIN payments p ON t.id = p.ticket_id
       WHERE t.user_id = ?
       ORDER BY s.departure_time DESC
     `;

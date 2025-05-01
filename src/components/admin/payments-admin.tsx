@@ -20,7 +20,7 @@ const columns = [
   { key: "ticket_id", label: "Ticket ID" },
   { key: "amount", label: "Amount" },
   { key: "payment_status", label: "Status" },
-  { key: "transaction_id", label: "Transaction ID" },
+  { key: "paid_at", label: "Paid At" },
   { key: "created_at", label: "Created At" }
 ]
 
@@ -28,7 +28,6 @@ const addFormFields = [
   { key: "user_id", label: "User ID" },
   { key: "ticket_id", label: "Ticket ID" },
   { key: "amount", label: "Amount" },
-  { key: "transaction_id", label: "Transaction ID" }
 ]
 
 export function PaymentsAdmin() {
