@@ -18,7 +18,6 @@ export async function POST(request: Request) {
 
     const connection = await mysql.createConnection(connectionParams)
 
-    // Check if user already exists
     const [existingUsers] = await connection.execute(
       "SELECT * FROM users WHERE email = ?",
       [email]
@@ -32,7 +31,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Insert new user with default role 'guest'
     const [result] = await connection.execute(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'guest')",
       [name, email, password]
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "User registered successfully",
-      userId: result.insertId
+      user: { id: result.insertId, name, email, role: 'guest' }
     })
   } catch (error) {
     console.error("Registration error:", error)
