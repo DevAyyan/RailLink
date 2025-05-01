@@ -14,11 +14,15 @@ const columns = [
   { key: "id", label: "ID" },
   { key: "name", label: "Name" },
   { key: "city", label: "City" },
+  { key: "latitude", label: "Latitude" },
+  { key: "longitude", label: "Longitude" },
 ]
 
 const addFormFields = [
   { key: "name", label: "Name" },
   { key: "city", label: "City" },
+  { key: "latitude", label: "Latitude" },
+  { key: "longitude", label: "Longitude" },
 ]
 
 export function StationsAdmin() {
