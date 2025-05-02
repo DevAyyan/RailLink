@@ -29,7 +29,7 @@ CREATE TABLE railways (
     id INT AUTO_INCREMENT PRIMARY KEY,
     station_1_id INT NOT NULL,
     station_2_id INT NOT NULL,
-    distance_km DECIMAL(5, 2) NOT NULL,
+    distance_km DECIMAL(7, 2) NOT NULL,
     FOREIGN KEY (station_1_id) REFERENCES stations(id) 
         ON DELETE CASCADE 
         ON UPDATE CASCADE,
@@ -230,15 +230,15 @@ INSERT INTO tickets (user_id, schedule_id, class) VALUES
 (2, 11, 'business');
 
 -- Insert into payments
-INSERT INTO payments (user_id, ticket_id, amount, payment_status, transaction_id) VALUES
-(2, 1, 50.00, 'Completed', 'TXN1001'),
-(3, 2, 90.00, 'Completed', 'TXN1002'),
-(4, 3, 130.00, 'Pending', 'TXN1003'),
-(5, 4, 50.00, 'Completed', 'TXN1004'),
-(6, 5, 105.00, 'Completed', 'TXN1005'),
-(7, 6, 145.00, 'Failed', 'TXN1006'),
-(8, 7, 50.00, 'Completed', 'TXN1007'),
-(9, 8, 92.00, 'Pending', 'TXN1008'),
-(10, 9, 137.00, 'Completed', 'TXN1009'),
-(11, 10, 49.00, 'Completed', 'TXN1010'),
-(2, 11, 89.00, 'Completed', 'TXN1011');
+INSERT INTO payments (ticket_id, amount, payment_status) VALUES
+(1, 50.00, 'Completed'),
+(2, 90.00, 'Completed'),
+(3, 130.00, 'Pending'),
+(4, 50.00, 'Completed'),
+(5, 105.00, 'Completed'),
+(6, 145.00, 'Failed'),
+(7, 50.00, 'Completed'),
+(8, 92.00, 'Pending'),
+(9, 137.00, 'Completed'),
+(10, 49.00, 'Completed'),
+(11, 89.00, 'Completed');
